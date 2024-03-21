@@ -2,7 +2,9 @@ const express = require("express");
 const multer = require("multer");
 const { hashPassword } = require("./services/auth");
 
-const upload = multer({ dest: "public/uploads/" });
+const upload = multer({
+  dest: "public/uploads/",
+});
 const router = express.Router();
 
 /* ************************************************************************* */
@@ -17,12 +19,14 @@ const modeleControllers = require("./controllers/modeleControllers");
 const vehiculeControllers = require("./controllers/vehiculeControllers");
 const tarificationControllers = require("./controllers/tarificationControllers");
 const borneControllers = require("./controllers/borneControllers");
+const checkLogIn = require("./middleware/checkLongIn");
+const checkSignIn = require("./middleware/checkSignIn");
 
 // Route to connect user
-router.post("/login", userControllers.login);
+router.post("/login", checkLogIn, userControllers.login);
 
 // Route to add a new users
-router.post("/users", hashPassword, userControllers.add);
+router.post("/users", checkSignIn, hashPassword, userControllers.add);
 
 // Route to delete user
 router.post("/delete", userControllers.userDelete);
@@ -37,6 +41,9 @@ router.get("/logout", userControllers.logout);
 // Route to get a list of users
 router.get("/users", userControllers.browse);
 
+// Route to delete a user
+router.delete("/users/:id", userControllers.destroy);
+
 // Route to get a list of reservations by ID
 router.get("/users/:id", userControllers.read);
 
@@ -45,6 +52,9 @@ router.get("/takeid/:email", userControllers.takeId);
 
 // Route to edit a user
 router.post("/edituser", userControllers.edit);
+
+// Route to edit a user by an admin
+router.post("/adminEditUser", userControllers.adminEditUser);
 
 // Route to get a list of reservations
 router.post("/reservations", reservationControllers.add);

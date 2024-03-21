@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Lottie from "react-lottie-player";
 import axios from "axios";
 import { Link } from "react-router-dom";
-
+import CheckToken from "../services/CheckToken";
 import data from "../data/UserDataTest.json";
 
 import "../scss/reservation.scss";
@@ -14,60 +14,38 @@ import ReservationCard from "../components/ReservationCard";
 import PastReservationCard from "../components/PastReservationCard";
 
 export default function Reservation() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   const [lastname, setLastname] = useState();
   const [firstname, setFirstname] = useState();
   const [avatar, setAvatar] = useState(data[0].img);
 
   const [reservation, setReservation] = useState();
-
+  CheckToken();
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/checktoken`, {
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/takedata`, {
         withCredentials: true,
       })
-      .then((res) => {
-        if (res.data.message === "OK") {
-          setIsLoggedIn(true);
+      .then((resp) => {
+        setLastname(resp.data[0].nom);
+        setFirstname(resp.data[0].prenom);
+        setAvatar(data[0].img);
+      });
 
-          axios
-            .get(`${import.meta.env.VITE_BACKEND_URL}/api/takedata`, {
-              withCredentials: true,
-            })
-            .then((resp) => {
-              setLastname(resp.data[0].nom);
-              setFirstname(resp.data[0].prenom);
-              setAvatar(data[0].img);
-            });
+    axios
+      .get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/reservationsBrowse`,
 
-          axios
-            .get(
-              `${import.meta.env.VITE_BACKEND_URL}/api/reservationsBrowse`,
-
-              {
-                withCredentials: true,
-              }
-            )
-            .then((respo) => {
-              setReservation(respo.data);
-            });
-        } else {
-          setIsLoggedIn(false);
-          setTimeout(() => {
-            window.location.href = "/sign-in";
-          }, 3800);
+        {
+          withCredentials: true,
         }
-        setIsLoading(false);
+      )
+      .then((respo) => {
+        setReservation(respo.data);
       });
   }, []);
 
-  if (isLoading) {
-    return null;
-  }
-
-  if (!isLoggedIn) {
+  console.info(CheckToken());
+  if (CheckToken() === false) {
     return (
       <section>
         <div className="containererror">
@@ -104,28 +82,26 @@ export default function Reservation() {
           <div className="reservation-card-container">
             {reservation &&
               reservation.map((res) => {
-                return res.map((r) => {
-                  const hour = r.heure.split(":")[0];
-                  const minutes = r.heure.split(":")[1];
-                  const seconds = r.heure.split(":")[2];
+                const hour = res.heure.split(":")[0];
+                const minutes = res.heure.split(":")[1];
+                const seconds = res.heure.split(":")[2];
 
-                  const reservationDate = new Date(r.date_reservation);
-                  reservationDate.setHours(hour);
-                  reservationDate.setMinutes(minutes);
-                  reservationDate.setSeconds(seconds);
+                const reservationDate = new Date(res.date_reservation);
+                reservationDate.setHours(hour);
+                reservationDate.setMinutes(minutes);
+                reservationDate.setSeconds(seconds);
 
-                  if (reservationDate >= new Date()) {
-                    return (
-                      <ReservationCard
-                        key={r.id}
-                        id={r.id}
-                        borneId={r.borne_id}
-                        date={r.date_reservation}
-                      />
-                    );
-                  }
-                  return null;
-                });
+                if (reservationDate >= new Date()) {
+                  return (
+                    <ReservationCard
+                      key={res.id}
+                      id={res.id}
+                      borneId={res.borne_id}
+                      date={res.date_reservation}
+                    />
+                  );
+                }
+                return null;
               })}
           </div>
         </div>
@@ -134,27 +110,25 @@ export default function Reservation() {
           <h2>Réservation passés</h2>
           {reservation &&
             reservation.map((res) => {
-              return res.map((r) => {
-                const hour = r.heure.split(":")[0];
-                const minutes = r.heure.split(":")[1];
-                const seconds = r.heure.split(":")[2];
+              const hour = res.heure.split(":")[0];
+              const minutes = res.heure.split(":")[1];
+              const seconds = res.heure.split(":")[2];
 
-                const reservationDate = new Date(r.date_reservation);
-                reservationDate.setHours(hour);
-                reservationDate.setMinutes(minutes);
-                reservationDate.setSeconds(seconds);
+              const reservationDate = new Date(res.date_reservation);
+              reservationDate.setHours(hour);
+              reservationDate.setMinutes(minutes);
+              reservationDate.setSeconds(seconds);
 
-                if (reservationDate < new Date()) {
-                  return (
-                    <PastReservationCard
-                      key={r.id}
-                      borneId={r.borne_id}
-                      date={r.date_reservation}
-                    />
-                  );
-                }
-                return null;
-              });
+              if (reservationDate < new Date()) {
+                return (
+                  <PastReservationCard
+                    key={res.id}
+                    borneId={res.borne_id}
+                    date={res.date_reservation}
+                  />
+                );
+              }
+              return null;
             })}
         </div>
       </div>

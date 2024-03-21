@@ -83,6 +83,43 @@ const edit = async (req, res, next) => {
     next(err);
   }
 };
+const adminEditUser = async (req, res, next) => {
+  const { id, prenom, nom, anniversaire, rue, codePostal, ville, derniereMaj } =
+    req.body;
+
+  try {
+    const birthday = new Date(anniversaire);
+    if (codePostal.toString().length === 5) {
+      if (
+        anniversaire < derniereMaj &&
+        Math.floor((Date.now() - birthday) / 31557600000) >= 18
+      ) {
+        const user = await tables.user.adminUpdateUser(
+          id,
+          prenom,
+          nom,
+          anniversaire,
+          rue,
+          codePostal,
+          ville,
+          derniereMaj
+        );
+
+        if (user.affectedRows === 0) {
+          res.sendStatus(404);
+        } else {
+          res.status(202).send({ message: "user updated" });
+        }
+      } else {
+        res.status(202).send({ message: "Date d'anniversaire incorrect" });
+      }
+    } else {
+      res.status(202).send({ message: "Code Postal incorrect" });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
 
 // The A of BREAD - Add (Create) operation
 const add = async (req, res, next) => {
@@ -297,6 +334,37 @@ const userDelete = async (req, res, next) => {
   }
 };
 
+const destroy = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await tables.user.take(id);
+
+    if (user) {
+      const vehicules = await tables.vehicule.checkVehicule(user.id);
+      console.info(vehicules);
+      // eslint-disable-next-line no-unused-vars
+      vehicules.forEach(async (vehicule) => {
+        const reservation = await tables.reservation.checkReservationForDelete(
+          id
+        );
+
+        if (reservation.length === 0) {
+          await tables.user.destroy(id);
+          res.status(200).send({ message: "Compte supprimé" });
+        } else {
+          res.status(200).send({
+            message:
+              "Impossible de supprimer vous avez des réservations en cours veuillez les annuler si vous souhaitez supprimer votre compte de notre site de type internet merci de votre compréhension",
+          });
+        }
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
 const takeData = async (req, res, next) => {
   try {
     const { token } = req.cookies;
@@ -320,7 +388,9 @@ module.exports = {
   login,
   checktoken,
   userDelete,
+  destroy,
   takeData,
   takeId,
   logout,
+  adminEditUser,
 };

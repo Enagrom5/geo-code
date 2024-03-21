@@ -1,24 +1,23 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import Lottie from "react-lottie-player";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
-import ReservationContext from "../../Context/ReservationContext";
+import IdContext from "../../Context/IdContext";
 
 import mailError from "../../assets/LottieFiles/EmailError.json";
 import "../../scss/auth/SignInPage.scss";
 
 import ScrollToTop from "../ResetScrollOnPage";
 import MarqueModeleContext from "../../Context/MarqueModeleContext";
+import CheckToken from "../../services/CheckToken";
 
 function AddYourVehicule() {
+  CheckToken();
   const { marque, modele } = useContext(MarqueModeleContext);
   const [selectedMarque, setSelectedMarque] = useState({});
   const [selectedModele, setSelectedModele] = useState({});
-  const { reservation, setReservation } = useContext(ReservationContext);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { id } = useContext(IdContext);
 
   const handleSelectedMarque = (event) => {
     setSelectedMarque({
@@ -32,27 +31,8 @@ function AddYourVehicule() {
     });
   };
 
-  useEffect(() => {
-    axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/checktoken`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        if (res.data.message === "OK") {
-          setIsLoggedIn(true);
-          setReservation(res.data.id);
-        } else {
-          setIsLoggedIn(false);
-          setTimeout(() => {
-            window.location.href = "/sign-in";
-          }, 3800);
-        }
-        setIsLoading(false);
-      });
-  }, []);
-
   const vehiculeData = {
-    proprietaire_id: reservation,
+    proprietaire_id: id,
     modele_id: selectedModele.id,
   };
   const handleSubmit = () => {
@@ -66,10 +46,7 @@ function AddYourVehicule() {
     }, 1000);
   };
 
-  if (isLoading) {
-    return null;
-  }
-  if (!isLoggedIn) {
+  if (!CheckToken()) {
     return (
       <section>
         <div className="containererror">
